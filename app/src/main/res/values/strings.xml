@@ -1,3 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SMOL</string>
+    <string name="tab_images">Images</string>
+    <string name="tab_video">Video</string>
+    <string name="tab_audio">Audio</string>
+    <string name="quality_label">Quality</string>
+    <string name="format_label">Format</string>
+    <string name="max_resolution_label">Max Resolution</string>
+    <string name="resolution_label">Resolution</string>
+    <string name="bitrate_label">Bitrate</string>
+    <string name="codec_label">Codec</string>
+    <string name="compress_and_share">Compress &amp; Share</string>
+    <string name="compressing">Compressing\u2026</string>
+    <string name="original_size">Original: %s</string>
+    <string name="estimated_size">Estimated: %s</string>
+    <string name="compressed_size">Compressed: %s</string>
+    <string name="savings">Saved %1$s (%2$d%%)</string>
+    <string name="share">Share</string>
+    <string name="retry">Retry</string>
+    <string name="error_compression_failed">Compression failed: %s</string>
+    <string name="settings_title">Compression Settings</string>
+    <string name="share_quick_label">SMOL Quick</string>
+    <string name="share_custom_label">SMOL</string>
 </resources>
