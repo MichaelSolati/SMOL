@@ -86,6 +86,7 @@ jobs:
           alias: ${{ secrets.RELEASE_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          buildToolsVersion: '35.0.0'
 
       - name: Commit and Push Version Bump
         run: |
