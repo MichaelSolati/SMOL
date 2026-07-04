@@ -21,7 +21,7 @@ import javax.inject.Singleton
 
 interface ImageCompressor {
     suspend fun compress(uri: Uri, settings: ImageCompressionSettings): CompressionResult
-    fun estimateCompressedSize(originalSize: Long, settings: ImageCompressionSettings): Long
+    fun estimateCompressedSize(uri: Uri, originalSize: Long, settings: ImageCompressionSettings): Long
 }
 
 @Singleton
@@ -130,7 +130,7 @@ class ImageCompressorImpl @Inject constructor(
         )
     }
 
-    override fun estimateCompressedSize(originalSize: Long, settings: ImageCompressionSettings): Long {
+    override fun estimateCompressedSize(uri: Uri, originalSize: Long, settings: ImageCompressionSettings): Long {
         if (settings.maxFileSizeBytes > 0) {
             return settings.maxFileSizeBytes
         }
@@ -142,7 +142,27 @@ class ImageCompressorImpl @Inject constructor(
             ImageFormat.GIF -> 0.6
             null -> 0.7 // assume JPEG-like ratio when keeping original
         }
-        return (originalSize * qualityFactor * formatFactor).toLong().coerceAtLeast(1024)
+        
+        var resolutionScale = 1.0
+        if (settings.maxResolution > 0) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeStream(inputStream, null, options)
+                    val originalWidth = options.outWidth
+                    val originalHeight = options.outHeight
+                    val maxDim = maxOf(originalWidth, originalHeight)
+                    if (maxDim > settings.maxResolution && maxDim > 0) {
+                        val scale = settings.maxResolution.toDouble() / maxDim
+                        resolutionScale = Math.pow(scale, 1.4)
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore and use 1.0
+            }
+        }
+        
+        return (originalSize * qualityFactor * formatFactor * resolutionScale).toLong().coerceAtLeast(1024)
     }
 
     private fun compressToTargetSize(

@@ -134,8 +134,28 @@ class AudioCompressorImpl @Inject constructor(
         val durationMs = getDuration(uri)
         if (durationMs <= 0) return 0L
         val durationSec = durationMs / 1000.0
-        val bitsPerSecond = settings.bitrate * 1000L
+        
+        val originalBitrate = getOriginalBitrate(uri)
+        val bitsPerSecond = if (settings.bitrate > 0) {
+            settings.bitrate * 1000L
+        } else if (originalBitrate > 0) {
+            originalBitrate
+        } else {
+            128_000L // Fallback: 128 kbps
+        }
         return ((bitsPerSecond * durationSec) / 8).toLong()
+    }
+
+    private fun getOriginalBitrate(uri: Uri): Long {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, uri)
+            val bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
+            retriever.release()
+            bitrate
+        } catch (e: Exception) {
+            0L
+        }
     }
 
     private fun getDuration(uri: Uri): Long {

@@ -143,8 +143,47 @@ class VideoCompressorImpl @Inject constructor(
         val durationMs = getDuration(uri)
         if (durationMs <= 0) return 0L
         val durationSec = durationMs / 1000.0
-        val bitsPerSecond = (settings.bitrateMbps * 1_000_000).toLong()
-        return ((bitsPerSecond * durationSec) / 8).toLong()
+        
+        val originalBitrate = getOriginalBitrate(uri)
+        val bitsPerSecond = if (settings.bitrateMbps > 0f) {
+            (settings.bitrateMbps * 1_000_000).toLong()
+        } else if (originalBitrate > 0) {
+            originalBitrate
+        } else {
+            4_000_000L // Fallback: 4 Mbps
+        }
+        
+        var estimated = ((bitsPerSecond * durationSec) / 8).toLong()
+        
+        // Adjust for resolution downscaling if resolution is specified
+        if (settings.resolution != null && originalBitrate > 0) {
+            try {
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(context, uri)
+                val originalHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toDoubleOrNull() ?: 0.0
+                retriever.release()
+                if (originalHeight > settings.resolution.shortEdge && originalHeight > 0) {
+                    val scale = settings.resolution.shortEdge.toDouble() / originalHeight
+                    estimated = (estimated * Math.pow(scale, 1.2)).toLong()
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+        
+        return estimated
+    }
+
+    private fun getOriginalBitrate(uri: Uri): Long {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, uri)
+            val bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
+            retriever.release()
+            bitrate
+        } catch (e: Exception) {
+            0L
+        }
     }
 
     private fun getDuration(uri: Uri): Long {

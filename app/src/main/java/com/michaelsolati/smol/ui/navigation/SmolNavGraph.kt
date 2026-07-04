@@ -29,7 +29,18 @@ fun SmolNavGraph(
             )
         }
         composable(Screen.Compress.route) {
-            CompressScreen(viewModel = compressViewModel)
+            CompressScreen(
+                viewModel = compressViewModel,
+                onBackClick = {
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(Screen.Settings.route) {
+                            popUpTo(Screen.Compress.route) { inclusive = true }
+                        }
+                    }
+                }
+            )
         }
     }
 }

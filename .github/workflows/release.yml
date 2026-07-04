@@ -74,8 +74,18 @@ jobs:
           # Set outputs for next steps
           echo "NEW_VERSION=$NEW_VERSION_NAME" >> $GITHUB_ENV
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Sign Release APK
+        uses: r0adksp/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.RELEASE_KEYSTORE }}
+          alias: ${{ secrets.RELEASE_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Commit and Push Version Bump
         run: |
@@ -90,7 +100,7 @@ jobs:
         with:
           tag_name: v${{ env.NEW_VERSION }}
           name: Release v${{ env.NEW_VERSION }}
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: ${{ steps.sign_app.outputs.signedReleaseFile }}
           generate_release_notes: true
           draft: false
           prerelease: false

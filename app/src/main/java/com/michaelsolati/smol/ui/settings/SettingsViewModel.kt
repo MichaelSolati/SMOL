@@ -33,6 +33,24 @@ class SettingsViewModel @Inject constructor(
     val audioSettings: StateFlow<AudioCompressionSettings> = preferences.audioSettings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AudioCompressionSettings())
 
+    fun exportSettingsJson(): String {
+        return com.michaelsolati.smol.util.BackupUtil.exportSettings(
+            imageProfileSettings.value,
+            videoSettings.value,
+            audioSettings.value
+        )
+    }
+
+    fun importSettingsFromJson(jsonString: String): Boolean {
+        val backup = com.michaelsolati.smol.util.BackupUtil.importSettings(jsonString) ?: return false
+        viewModelScope.launch {
+            preferences.updateImageProfileSettings(backup.first)
+            preferences.updateVideoSettings(backup.second)
+            preferences.updateAudioSettings(backup.third)
+        }
+        return true
+    }
+
     // Image profile update helpers — each operates on a specific format key
     fun updateImageQuality(formatKey: String, quality: Int) {
         updateImageForFormat(formatKey) { it.copy(quality = quality) }
