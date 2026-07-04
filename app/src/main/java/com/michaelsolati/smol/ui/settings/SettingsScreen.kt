@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -32,7 +32,7 @@ enum class SettingsTab(val title: String, val icon: ImageVector) {
     IMAGES("Images", Icons.Default.Image),
     VIDEO("Video", Icons.Default.Videocam),
     AUDIO("Audio", Icons.Default.AudioFile),
-    BACKUP("Backup", Icons.Default.Backup)
+    SETTINGS("Settings", Icons.Default.Settings)
 }
 
 @Composable
@@ -50,9 +50,16 @@ fun SettingsScreen(
         }
     }
 
+    val topBarTitle = when (selectedTab) {
+        0 -> "Image Settings"
+        1 -> "Video Settings"
+        2 -> "Audio Settings"
+        else -> "App Settings"
+    }
+
     Scaffold(
         topBar = {
-            SmolTopAppBar(title = "SMOL Settings")
+            SmolTopAppBar(title = topBarTitle)
         },
         bottomBar = {
             NavigationBar(
@@ -88,7 +95,7 @@ fun SettingsScreen(
             0 -> ImageSettingsScreen(viewModel = viewModel, modifier = Modifier.padding(innerPadding))
             1 -> VideoSettingsScreen(viewModel = viewModel, modifier = Modifier.padding(innerPadding))
             2 -> AudioSettingsScreen(viewModel = viewModel, modifier = Modifier.padding(innerPadding))
-            3 -> BackupSettingsScreen(viewModel = viewModel, modifier = Modifier.padding(innerPadding))
+            3 -> GeneralSettingsScreen(viewModel = viewModel, modifier = Modifier.padding(innerPadding))
         }
     }
 }

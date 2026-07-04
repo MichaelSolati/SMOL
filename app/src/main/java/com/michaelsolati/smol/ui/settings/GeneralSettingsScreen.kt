@@ -1,5 +1,6 @@
 package com.michaelsolati.smol.ui.settings
 
+import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,9 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -34,7 +40,7 @@ import com.michaelsolati.smol.util.ShareUtil
 import java.io.File
 
 @Composable
-fun BackupSettingsScreen(
+fun GeneralSettingsScreen(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -64,12 +70,13 @@ fun BackupSettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Icon(
-            imageVector = Icons.Default.Backup,
+            imageVector = Icons.Default.Settings,
             contentDescription = null,
             modifier = Modifier.size(72.dp),
             tint = MaterialTheme.colorScheme.primary
@@ -80,13 +87,13 @@ fun BackupSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Backup & Restore Settings",
+                text = "App Settings",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Export your custom SMOL configuration profiles to a file, or restore settings from an existing backup.",
+                text = "Manage your preferences, clear cache, and export/import your configuration profiles.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -94,27 +101,34 @@ fun BackupSettingsScreen(
             )
         }
 
+        // Section 1: Backup & Restore
         SmolCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Backup / Export Profiles",
+                    text = "Backup & Restore",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "This will create a JSON backup of your current Image, Video, and Audio quality profiles.",
+                    text = "Export your custom SMOL configuration profiles to a file, or restore settings from an existing backup.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                
                 Button(
                     onClick = {
                         try {
                             val jsonString = viewModel.exportSettingsJson()
-                            val tempFile = File(context.cacheDir, "smol_settings_backup.json")
+                            
+                            // Write file to 'compressed' subdirectory of cache, which is a configured FileProvider root
+                            val backupDir = File(context.cacheDir, "compressed")
+                            if (!backupDir.exists()) backupDir.mkdirs()
+                            val tempFile = File(backupDir, "smol_settings_backup.json")
                             tempFile.writeText(jsonString)
+                            
                             val fileUri = ShareUtil.getFileProviderUri(context, tempFile)
 
                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -124,7 +138,7 @@ fun BackupSettingsScreen(
                             }
                             context.startActivity(Intent.createChooser(shareIntent, "Backup SMOL Settings"))
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Export failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Export failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -137,24 +151,7 @@ fun BackupSettingsScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Export Settings")
                 }
-            }
-        }
 
-        SmolCard(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Restore / Import Profiles",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Select a previously exported SMOL settings file to overwrite your current quality profiles.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
                 OutlinedButton(
                     onClick = {
                         importLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
@@ -172,6 +169,81 @@ fun BackupSettingsScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Import Settings")
                 }
+            }
+        }
+
+        // Section 2: Storage Utilities
+        SmolCard(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Storage Utilities",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Clear cached media files generated during compression to free up disk space.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                OutlinedButton(
+                    onClick = {
+                        try {
+                            val cacheDir = File(context.cacheDir, "compressed")
+                            var deletedCount = 0
+                            if (cacheDir.exists()) {
+                                val files = cacheDir.listFiles()
+                                files?.forEach {
+                                    if (it.name != "smol_settings_backup.json" && it.delete()) {
+                                        deletedCount++
+                                    }
+                                }
+                            }
+                            Toast.makeText(context, "Cleared $deletedCount cached file(s)", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Failed to clear cache", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Clear Temporary Cache")
+                }
+            }
+        }
+
+        // Section 3: About
+        SmolCard(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "About",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "SMOL — Media Compressor",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Version 0.0.2 (Debug Build)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
