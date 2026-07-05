@@ -34,7 +34,9 @@ fun DoneContent(
     state: CompressUiState.Done,
     onShare: (List<CompressionResult>) -> Unit,
     onSave: (List<CompressionResult>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPickMode: Boolean = false,
+    onAttach: ((List<CompressionResult>) -> Unit)? = null
 ) {
     val totalOriginal = state.results.sumOf { it.originalSize }
     val totalCompressed = state.results.sumOf { it.compressedSize }
@@ -142,26 +144,66 @@ fun DoneContent(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Button(
-                onClick = { onShare(state.results) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Share Now",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            if (isPickMode && onAttach != null) {
+                Button(
+                    onClick = { onAttach(state.results) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Attach to App",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-            OutlinedButton(
-                onClick = { onSave(state.results) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Save to Device",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { onShare(state.results) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Share",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = { onSave(state.results) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Save",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            } else {
+                Button(
+                    onClick = { onShare(state.results) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Share Now",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { onSave(state.results) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Save to Device",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

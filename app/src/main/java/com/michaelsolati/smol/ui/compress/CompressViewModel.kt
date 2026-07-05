@@ -52,6 +52,8 @@ class CompressViewModel @Inject constructor(
     private val preferences: CompressionPreferences
 ) : ViewModel() {
 
+    var isPickMode: Boolean = false
+
     private val _uiState = MutableStateFlow<CompressUiState>(CompressUiState.Idle)
     val uiState: StateFlow<CompressUiState> = _uiState
 
@@ -74,7 +76,7 @@ class CompressViewModel @Inject constructor(
                 val mimeType = FileUtil.getMimeType(context, uri) ?: return@mapNotNull null
                 val name = FileUtil.getFileName(context, uri) ?: "Unknown"
                 val size = FileUtil.getFileSize(context, uri)
-                val mediaType = FileUtil.getMediaType(mimeType)
+                val mediaType = FileUtil.getMediaType(mimeType) ?: return@mapNotNull null
 
                 SharedFileInfo(
                     uri = uri,

@@ -28,13 +28,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val sharedUris = ShareUtil.extractSharedUris(intent)
         val isQuickCompress = isQuickCompressMode(intent)
-
         if (isQuickCompress) {
             setTheme(R.style.Theme_SMOL_Transparent)
         }
 
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        val isPickMode = intent.action == Intent.ACTION_GET_CONTENT || intent.action == Intent.ACTION_PICK
+        compressViewModel.isPickMode = isPickMode
 
         if (sharedUris.isNotEmpty() && isQuickCompress) {
             // Quick compress: no UI, compress and share immediately
@@ -45,8 +47,10 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        val startDestination = if (sharedUris.isNotEmpty()) {
-            compressViewModel.loadSharedFiles(sharedUris, autoCompress = false)
+        val startDestination = if (sharedUris.isNotEmpty() || isPickMode) {
+            if (sharedUris.isNotEmpty()) {
+                compressViewModel.loadSharedFiles(sharedUris, autoCompress = false)
+            }
             Screen.Compress.route
         } else {
             Screen.Settings.route

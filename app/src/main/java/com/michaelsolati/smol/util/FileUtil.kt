@@ -34,12 +34,12 @@ object FileUtil {
         return context.contentResolver.getType(uri)
     }
 
-    fun getMediaType(mimeType: String): MediaType {
+    fun getMediaType(mimeType: String): MediaType? {
         return when {
             mimeType.startsWith("image/") -> MediaType.IMAGE
             mimeType.startsWith("video/") -> MediaType.VIDEO
             mimeType.startsWith("audio/") -> MediaType.AUDIO
-            else -> MediaType.IMAGE
+            else -> null
         }
     }
 

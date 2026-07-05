@@ -1,13 +1,18 @@
 package com.michaelsolati.smol.ui.compress
 
+import android.app.Activity
+import android.content.ClipData
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,6 +31,41 @@ fun CompressScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.loadSharedFiles(uris, autoCompress = true)
+        } else {
+            (context as? Activity)?.finish()
+        }
+    }
+
+    LaunchedEffect(uiState) {
+        val state = uiState
+        if (viewModel.isPickMode && state is CompressUiState.Idle) {
+            filePickerLauncher.launch(arrayOf("image/*", "video/*", "audio/*"))
+        } else if (viewModel.isPickMode && state is CompressUiState.Done) {
+            val uris = state.results.map { it.compressedUri }
+            val resultIntent = Intent().apply {
+                if (uris.size == 1) {
+                    data = uris.first()
+                } else {
+                    val clipData = ClipData.newUri(context.contentResolver, "Compressed Files", uris.first())
+                    for (i in 1 until uris.size) {
+                        clipData.addItem(ClipData.Item(uris[i]))
+                    }
+                    this.clipData = clipData
+                }
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            (context as? Activity)?.let { activity ->
+                activity.setResult(Activity.RESULT_OK, resultIntent)
+                activity.finish()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -62,6 +102,7 @@ fun CompressScreen(
                 is CompressUiState.Done -> {
                     DoneContent(
                         state = state,
+                        isPickMode = viewModel.isPickMode,
                         onShare = { results ->
                             val uris = results.map { it.compressedUri }
                             val mimeType = results.first().let { result ->
@@ -93,6 +134,25 @@ fun CompressScreen(
                                 ShareUtil.saveToDownloads(context, result.compressedUri, fileName, exactMimeType)
                             }
                             Toast.makeText(context, "Saved to Downloads/SMOL", Toast.LENGTH_SHORT).show()
+                        },
+                        onAttach = { results ->
+                            val uris = results.map { it.compressedUri }
+                            val resultIntent = Intent().apply {
+                                if (uris.size == 1) {
+                                    data = uris.first()
+                                } else {
+                                    val clipData = ClipData.newUri(context.contentResolver, "Compressed Files", uris.first())
+                                    for (i in 1 until uris.size) {
+                                        clipData.addItem(ClipData.Item(uris[i]))
+                                    }
+                                    this.clipData = clipData
+                                }
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            (context as? Activity)?.let { activity ->
+                                activity.setResult(Activity.RESULT_OK, resultIntent)
+                                activity.finish()
+                            }
                         }
                     )
                 }

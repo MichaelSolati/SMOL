@@ -28,7 +28,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +48,7 @@ fun GeneralSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val updateState by viewModel.updateState.collectAsState()
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -223,6 +227,110 @@ fun GeneralSettingsScreen(
             }
         }
 
+        // Section 2.5: App Updates
+        SmolCard(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "App Updates",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                when (val state = updateState) {
+                    is UpdateState.Idle -> {
+                        Text(
+                            text = "Check if there is a new version of SMOL available on GitHub.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(
+                            onClick = { viewModel.checkForUpdates(context) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Check for Updates")
+                        }
+                    }
+                    is UpdateState.Checking -> {
+                        Text(
+                            text = "Checking GitHub releases...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    is UpdateState.UpToDate -> {
+                        Text(
+                            text = "SMOL is up to date! You are on the latest version.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        OutlinedButton(
+                            onClick = { viewModel.checkForUpdates(context) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Check Again")
+                        }
+                    }
+                    is UpdateState.NewVersionAvailable -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "New Version Available: ${state.version}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Do you want to download and install this update?",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Button(
+                            onClick = { viewModel.downloadAndInstallUpdate(state.downloadUrl, context) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Download & Install")
+                        }
+                    }
+                    is UpdateState.Downloading -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val pct = (state.progress * 100).toInt()
+                            Text(
+                                text = "Downloading update: $pct%",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (state.progress > 0f) {
+                                LinearProgressIndicator(
+                                    progress = { state.progress },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+                    is UpdateState.Error -> {
+                        Text(
+                            text = "Error: ${state.message}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(
+                            onClick = { viewModel.checkForUpdates(context) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+        }
+
         // Section 3: About
         SmolCard(modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -239,8 +347,9 @@ fun GeneralSettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
+                val currentVersion = viewModel.getAppVersionName(context)
                 Text(
-                    text = "Version 0.0.2 (Debug Build)",
+                    text = "Version $currentVersion",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
